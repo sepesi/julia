@@ -268,7 +268,7 @@ function _typeinf(interp::AbstractInterpreter, frame::InferenceState)
     for (caller, _, _) in results
         opt = caller.src
         if opt isa OptimizationState{typeof(interp)} # implies `may_optimize(interp) === true`
-            analyzed = optimize(interp, opt, OptimizationParams(interp), caller)
+            analyzed = optimize(interp, opt, caller)
             if isa(analyzed, ConstAPI)
                 # XXX: The work in ir_to_codeinf! is essentially wasted. The only reason
                 # we're doing it is so that code_llvm can return the code
@@ -558,7 +558,7 @@ function finish(me::InferenceState, interp::AbstractInterpreter)
         doopt = (me.cached || me.parent !== nothing)
         recompute_cfg = type_annotate!(interp, me, doopt)
         if doopt && may_optimize(interp)
-            me.result.src = OptimizationState(me, OptimizationParams(interp), interp, recompute_cfg)
+            me.result.src = OptimizationState(me, interp, recompute_cfg)
         else
             me.result.src = me.src::CodeInfo # stash a convenience copy of the code (e.g. for reflection)
         end
@@ -973,8 +973,7 @@ function typeinf_ircode(
         return nothing, Any
     end
     (; result) = frame
-    opt_params = OptimizationParams(interp)
-    opt = OptimizationState(frame, opt_params, interp)
+    opt = OptimizationState(frame, interp)
     ir = run_passes(opt.src, opt, result, optimize_until)
     rt = widenconst(ignorelimited(result.result))
     ccall(:jl_typeinf_timing_end, Cvoid, ())
