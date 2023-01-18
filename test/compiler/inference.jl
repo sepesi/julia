@@ -2741,6 +2741,16 @@ end |> only === Int
 @test only(Base.return_types(Core.apply_type, Tuple{Any})) == Any
 @test only(Base.return_types(Core.apply_type, Tuple{Any,Any})) == Any
 
+# `apply_type_tfunc` accuracy for constrained type construction
+# https://github.com/JuliaLang/julia/issues/47089
+import Core: Const
+import Core.Compiler: apply_type_tfunc
+struct Issue47089{A,B} end
+let A = Type{<:Integer}
+    @test apply_type_tfunc(Const(T), A, A) <: (Type{T{A,B}} where {A<:Integer, B<:Integer})
+end
+@test only(Base.return_types(keys, (Dict{String},))) == Base.KeySet{String, T} where T<:(Dict{String})
+
 # PR 27351, make sure optimized type intersection for method invalidation handles typevars
 
 abstract type AbstractT27351 end
